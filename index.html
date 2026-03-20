@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worksheet Filler</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080810;
+    --surface:  #0f0f1a;
+    --border:   #1e1e32;
+    --text:     #e8e8f0;
+    --muted:    #4a4a6a;
+    --accent:   #6366f1;
+    --accent2:  #8b5cf6;
+    --green:    #10b981;
+    --green2:   #34d399;
+    --blue:     #1F3864;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grid ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  .header p {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+  .tab {
+    flex: 1;
+    padding: 9px 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 9px;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* ── API Key ── */
+  .key-row { display: flex; gap: 8px; }
+  .key-row input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .key-row input:focus { border-color: var(--accent); }
+  .key-row input::placeholder { color: var(--muted); }
+  .btn-sm {
+    padding: 10px 16px;
+    background: var(--border);
+    border: 1px solid #2a2a45;
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn-sm:hover { background: #2a2a45; }
+  .saved-badge {
+    display: none;
+    font-size: 12px;
+    color: var(--green);
+    margin-top: 8px;
+  }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .drop-zone:hover, .drop-zone.over {
+    border-color: var(--accent);
+    background: #0a0a18;
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  }
+  .dz-icon { font-size: 44px; margin-bottom: 14px; }
+  .dz-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .dz-sub { font-size: 13px; color: var(--muted); }
+  .dz-sub span {
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ── File list ── */
+  .file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  .fi-icon { font-size: 20px; }
+  .fi-name { flex:1; font-size:13px; color:#ccc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fi-size { font-size:11px; color:var(--muted); }
+  .fi-rm   { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:0 4px; transition:color .15s; }
+  .fi-rm:hover { color: var(--red); }
+
+  /* ── Main button ── */
+  .btn-main {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-main::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-main:hover::after { opacity: 1; }
+  .btn-main:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.3); }
+  .btn-main:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ── Progress ── */
+  .prog-wrap { margin-top: 14px; }
+  .prog-bar  { height: 3px; background: var(--border); border-radius: 99px; overflow:hidden; }
+  .prog-fill {
+    height:100%; width:0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius:99px;
+    transition: width 0.4s ease;
+  }
+  .status {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 20px;
+    transition: color 0.2s;
+  }
+  .status.working { color: #60a5fa; }
+  .status.success { color: var(--green); }
+  .status.error   { color: var(--red); }
+
+  /* ── Download buttons ── */
+  .results { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .btn-dl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-radius: 11px;
+    border: 1px solid #1a3a1a;
+    background: #0a150a;
+    color: var(--green2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    animation: slideIn 0.3s ease;
+  }
+  .btn-dl:hover { background: #0f1f0f; border-color: var(--green); }
+  .btn-dl.v2    { border-color: #2a1a4a; background: #0a0a1f; color: #a78bfa; }
+  .btn-dl.v2:hover { background: #0f0f25; border-color: #7c3aed; }
+  .dl-name { flex:1; font-size:11px; color:var(--muted); font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dl-badge {
+    font-size:10px; padding:3px 8px; border-radius:5px;
+    font-weight:700; white-space:nowrap; font-family:'Space Mono',monospace;
+  }
+  .badge-g { background:#0d2010; border:1px solid #1a4020; color:var(--green2); }
+  .badge-p { background:#10102a; border:1px solid #252550; color:#a78bfa; }
+
+  /* ══ LENS TAB ══ */
+  .lens-hero {
+    text-align: center;
+    padding: 32px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .lens-hero::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.07) 0%, transparent 65%);
+    pointer-events:none;
+  }
+  .lens-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 32px;
+    position: relative;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.2); }
+    50%      { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+  }
+  .lens-hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .lens-hero p  { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .btn-lens {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #064e3b, #065f46);
+    border: 1px solid #10b981;
+    border-radius: 12px;
+    color: var(--green2);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-lens:hover { background: linear-gradient(135deg, #065f46, #047857); transform: scale(1.02); }
+  .btn-lens:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .lens-out {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: none;
+    animation: slideIn 0.3s ease;
+  }
+  .lens-out.show { display: block; }
+  .lens-out-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--green);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .lens-answer {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    margin-bottom: 14px;
+  }
+  .btn-copy {
+    padding: 8px 16px;
+    background: var(--border);
+    border: 1px solid #2a2a45;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { color: var(--text); background: #2a2a45; }
+
+  /* ── Lens note ── */
+  .lens-note {
+    background: #0a100a;
+    border: 1px solid #1a2a1a;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #4a6a4a;
+    margin-top: 12px;
+  }
+
+  /* ── Settings ── */
+  .setting-row { margin-bottom: 20px; }
+  .setting-row:last-child { margin-bottom: 0; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── Spinner ── */
+  .spin {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Screenshot overlay ── */
+  #capture-overlay {
+    position: fixed; inset:0;
+    background: rgba(8,8,16,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  #capture-overlay.show { display: flex; }
+  #capture-overlay p { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Screenshot upload overlay for Lens -->
+<div id="capture-overlay">
+  <div style="font-size:48px">🔍</div>
+  <div style="font-size:18px;font-weight:700">Lens — Upload Screenshot</div>
+  <p>Take a screenshot of your question (Win+Shift+S), then upload it below</p>
+  <input type="file" id="lens-file" accept="image/*"
+    style="padding:10px 20px;background:#1a1a2e;border:1px solid var(--border);border-radius:10px;color:var(--text);cursor:pointer;font-size:13px">
+  <button onclick="document.getElementById('capture-overlay').classList.remove('show')"
+    style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">Cancel</button>
+</div>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">✦ Worksheet Filler ✦</div>
+    <h1>Fill Any Worksheet<br>in Seconds</h1>
+    <p>Drag in your file · Claude fills it · Download & done</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="fill">📄 Fill</button>
+    <button class="tab"        data-tab="lens">🔍 Lens</button>
+    <button class="tab"        data-tab="settings">⚙️ Settings</button>
+  </div>
+
+  <!-- ══ FILL TAB ══ -->
+  <div class="tab-content active" id="tab-fill">
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" multiple accept=".pdf,.docx,.doc">
+      <div class="dz-icon">📂</div>
+      <div class="dz-title">Drop your worksheet here</div>
+      <div class="dz-sub">PDF or Word (.docx) — or <span>click to browse</span></div>
+    </div>
+
+    <!-- File list -->
+    <div class="file-list" id="file-list"></div>
+
+    <!-- Fill button -->
+    <button class="btn-main" id="fill-btn" disabled>✨ Fill Out Worksheet</button>
+
+    <!-- Progress -->
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="status" id="status">Add a worksheet file to get started</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results"></div>
+  </div>
+
+  <!-- ══ LENS TAB ══ -->
+  <div class="tab-content" id="tab-lens">
+    <div class="lens-hero">
+      <div class="lens-ring">🔍</div>
+      <h2>Lens</h2>
+      <p>Upload a screenshot of any question.<br>Claude gives you just the answer — no steps.</p>
+      <button class="btn-lens" id="lens-btn">📸 Upload Screenshot</button>
+    </div>
+
+    <div class="lens-note">
+      💡 <strong>How to use Lens:</strong><br>1. Press <strong>Win + Shift + S</strong> to snip your question and save it<br>2. Click the button above and upload the screenshot<br>3. Claude gives you just the answer instantly — no steps
+    </div>
+
+    <div class="lens-out" id="lens-out">
+      <div class="lens-out-label">Answer</div>
+      <div class="lens-answer" id="lens-answer"></div>
+      <button class="btn-copy" id="lens-copy">📋 Copy Answer</button>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS TAB ══ -->
+  <div class="tab-content" id="tab-settings">
+    <div class="card">
+      <div class="card-label">Claude API Key</div>
+      <div class="key-row">
+        <input type="password" id="api-key" placeholder="sk-ant-api03-..." />
+        <button class="btn-sm" id="save-key">Save</button>
+      </div>
+      <div class="saved-badge" id="saved-badge">✅ Key saved!</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">How to get a free API key</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        1. Go to <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a><br>
+        2. Sign up for a free account<br>
+        3. Go to <strong style="color:var(--text)">API Keys</strong> → Create Key<br>
+        4. Copy the key and paste it above<br><br>
+        <span style="color:#555">New accounts get $5 free credits — enough for the whole school year.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Models</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        📄 <strong style="color:var(--text)">Worksheets</strong> — Claude Sonnet (best quality/price)<br>
+        🔍 <strong style="color:var(--text)">Lens</strong> — Claude Haiku (fast, cheap)
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">WORKSHEET FILLER &nbsp;·&nbsp; POWERED BY CLAUDE AI &nbsp;·&nbsp; YOUR KEY STAYS IN YOUR BROWSER</div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let files = [];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const $     = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc   = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function setStatus(msg, type='') {
+  $('status').textContent = msg;
+  $('status').className   = `status ${type}`;
+}
+function setProgress(pct) { $('prog-fill').style.width = `${pct}%`; }
+
+function getKey() {
+  return localStorage.getItem('claude_key') || '';
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    $(`tab-${tab.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ── Settings ──────────────────────────────────────────────────────────────
+const savedKey = localStorage.getItem('claude_key');
+if (savedKey) $('api-key').value = savedKey;
+
+$('save-key').addEventListener('click', () => {
+  const key = $('api-key').value.trim();
+  if (!key) return;
+  localStorage.setItem('claude_key', key);
+  $('saved-badge').style.display = 'block';
+  setTimeout(() => $('saved-badge').style.display = 'none', 2000);
+});
+
+// ── FILL TAB ──────────────────────────────────────────────────────────────
+const dropZone = $('drop-zone');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  addFiles([...e.dataTransfer.files]);
+});
+$('file-input').addEventListener('change', e => {
+  addFiles([...e.target.files]);
+  e.target.value = '';
+});
+
+function addFiles(newFiles) {
+  const ok = newFiles.filter(f => f.name.match(/\.(pdf|docx|doc)$/i));
+  if (!ok.length) { setStatus('⚠️ Only PDF or Word (.docx) files supported', 'error'); return; }
+  files.push(...ok);
+  renderFiles();
+  $('fill-btn').disabled = false;
+  setStatus(`${files.length} file(s) ready`);
+}
+
+function renderFiles() {
+  const list = $('file-list');
+  list.innerHTML = '';
+  files.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <span class="fi-icon">${f.name.endsWith('.pdf') ? '📄' : '📝'}</span>
+      <span class="fi-name">${f.name}</span>
+      <span class="fi-size">${(f.size/1024).toFixed(0)} KB</span>
+      <button class="fi-rm" data-i="${i}">✕</button>`;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.fi-rm').forEach(btn =>
+    btn.addEventListener('click', () => {
+      files.splice(+btn.dataset.i, 1);
+      renderFiles();
+      if (!files.length) { $('fill-btn').disabled = true; setStatus('Add a worksheet file to get started'); }
+    })
+  );
+}
+
+$('fill-btn').addEventListener('click', async () => {
+  const key = getKey();
+  if (!key) {
+    setStatus('⚠️ Add your Claude API key in the Settings tab first', 'error');
+    document.querySelector('[data-tab="settings"]').click();
+    return;
+  }
+  $('fill-btn').disabled = true;
+  $('results').innerHTML = '';
+  const total = files.length * 2;
+  let done = 0;
+
+  for (const file of files) {
+    for (let v = 1; v <= 2; v++) {
+      setStatus(`🤖 Filling "${file.name}" — Version ${v}...`, 'working');
+      setProgress((done / total) * 95);
+      try {
+        const blob = await fillFile(file, key, v);
+        const date = new Date().toISOString().slice(0,10);
+        const base = file.name.replace(/\.(pdf|docx|doc)$/i,'');
+        const name = `${date}_${base}_v${v}.docx`;
+        addDownloadBtn(name, blob, v);
+      } catch(e) {
+        setStatus(`❌ ${file.name} v${v}: ${e.message}`, 'error');
+        console.error(e);
+      }
+      done++;
+    }
+  }
+
+  setProgress(100);
+  const btns = $('results').querySelectorAll('.btn-dl').length;
+  if (btns) {
+    setStatus(`✅ Done! ${btns} file(s) ready to download`, 'success');
+    files = []; renderFiles(); $('fill-btn').disabled = true;
+  } else {
+    setStatus('❌ Something went wrong. Check your API key in Settings.', 'error');
+    $('fill-btn').disabled = false;
+  }
+  setTimeout(() => setProgress(0), 3000);
+});
+
+function addDownloadBtn(name, blob, v) {
+  const btn = document.createElement('button');
+  btn.className = `btn-dl${v===2?' v2':''}`;
+  btn.innerHTML = `
+    <span>⬇️</span>
+    <span class="dl-name">${name}</span>
+    <span class="dl-badge ${v===1?'badge-g':'badge-p'}">V${v} ${v===1?'DIRECT':'PARAPHRASED'}</span>`;
+  btn.addEventListener('click', () => {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+    btn.querySelector('span').textContent = '✅';
+    btn.style.opacity = '0.6';
+  });
+  $('results').appendChild(btn);
+}
+
+// ── Claude API call ───────────────────────────────────────────────────────
+async function fillFile(file, apiKey, version) {
+  const dataUrl  = await readFile(file);
+  const b64      = dataUrl.split(',')[1];
+  const isPdf    = file.name.toLowerCase().endsWith('.pdf');
+  const mime     = isPdf
+    ? 'application/pdf'
+    : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const today    = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const prompt = version === 1
+    ? `You are an 8th-grade student filling out a worksheet. Fill EVERY blank. Be accurate and clear.
+Today: ${today}. Return ONLY raw JSON no markdown:
+{"worksheet_title":"...","name_date_period":{"name":"","date":"${today}","period":""},"notes_sections":[{"heading":"...","content":"full text with every blank filled"}],"fill_in_blanks":[{"blank_label":"...","answer":"..."}],"bullet_points":[{"text":"complete bullet"}],"tables":[{"title":"...","headers":["..."],"rows":[["..."]]}],"short_answers":[{"question":"...","answer":"..."}],"reading_notes":[{"section_heading":"...","summary":"...","questions_comments":"..."}]}`
+    : `You are an 8th-grade student filling out a worksheet. Fill EVERY blank using PARAPHRASED wording — same meaning, different phrasing.
+Today: ${today}. Return ONLY raw JSON no markdown:
+{"worksheet_title":"...","name_date_period":{"name":"","date":"${today}","period":""},"notes_sections":[{"heading":"...","content":"paraphrased text with every blank filled"}],"fill_in_blanks":[{"blank_label":"...","answer":"paraphrased answer"}],"bullet_points":[{"text":"paraphrased bullet"}],"tables":[{"title":"...","headers":["..."],"rows":[["..."]]}],"short_answers":[{"question":"...","answer":"paraphrased answer"}],"reading_notes":[{"section_heading":"...","summary":"paraphrased","questions_comments":"..."}]}`;
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) {
+      const w = 30 * attempt;
+      setStatus(`⏳ Rate limited — retrying in ${w}s...`, 'working');
+      await sleep(w * 1000);
+    }
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            { type:'document', source:{ type:'base64', media_type:mime, data:b64 } },
+            { type:'text', text:prompt }
+          ]
+        }]
+      })
+    });
+    if (resp.status === 429) continue;
+    if (!resp.ok) throw new Error(`Claude API error ${resp.status}`);
+    const json = await resp.json();
+    let raw = json.content?.[0]?.text?.trim() || '';
+    if (raw.startsWith('```')) { raw=raw.split('```')[1]; if(raw.startsWith('json'))raw=raw.slice(4); raw=raw.trim().replace(/```$/,''); }
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { data = { worksheet_title:file.name, name_date_period:{name:'',date:today,period:''}, notes_sections:[{heading:'',content:raw}], fill_in_blanks:[], bullet_points:[], tables:[], short_answers:[], reading_notes:[] }; }
+    return buildDocx(data, version, file.name);
+  }
+  throw new Error('Claude failed after 5 attempts');
+}
+
+// ── LENS TAB ─────────────────────────────────────────────────────────────
+$('lens-btn').addEventListener('click', () => {
+  $('capture-overlay').classList.add('show');
+});
+
+$('lens-file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $('capture-overlay').classList.remove('show');
+  e.target.value = '';
+
+  const key = getKey();
+  if (!key) {
+    $('lens-out').classList.add('show');
+    $('lens-answer').textContent = '⚠️ Add your Claude API key in the Settings tab first.';
+    return;
+  }
+
+  $('lens-btn').disabled = true;
+  $('lens-btn').innerHTML = '<span class="spin"></span> Analyzing...';
+  $('lens-out').classList.remove('show');
+
+  try {
+    const dataUrl = await readFile(file);
+    const b64     = dataUrl.split(',')[1];
+    const mime    = file.type || 'image/png';
+    const answer  = await lensAsk(b64, mime, key);
+    $('lens-answer').textContent = answer;
+    $('lens-out').classList.add('show');
+  } catch(e) {
+    $('lens-answer').textContent = `❌ Error: ${e.message}`;
+    $('lens-out').classList.add('show');
+  }
+
+  $('lens-btn').disabled = false;
+  $('lens-btn').innerHTML = '📸 Upload Screenshot';
+});
+
+$('lens-copy').addEventListener('click', () => {
+  navigator.clipboard.writeText($('lens-answer').textContent);
+  $('lens-copy').textContent = '✅ Copied!';
+  setTimeout(() => $('lens-copy').textContent = '📋 Copy Answer', 2000);
+});
+
+async function lensAsk(b64, mime, apiKey) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type':      'application/json',
+      'x-api-key':         apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: [
+          { type:'image', source:{ type:'base64', media_type:mime, data:b64 } },
+          { type:'text',  text:`Look at this screenshot and answer any visible question or fill in any blank.
+Give ONLY the direct answer — no explanation, no work shown, no "the answer is".
+If multiple questions, number them. Be as brief as possible. Just the answers.` }
+        ]
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error(`Claude error ${resp.status}`);
+  const json = await resp.json();
+  return json.content?.[0]?.text?.trim() || 'No answer found';
+}
+
+// ── Build Word doc ────────────────────────────────────────────────────────
+function buildDocx(data, version, src) {
+  const B='#1F3864';
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const ndt=data.name_date_period||{};
+  const title=data.worksheet_title||src;
+  let h=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><style>
+@page{margin:1in;size:letter}body{font-family:Calibri,sans-serif;font-size:11pt}
+.r{text-align:right;margin-bottom:3px}.ans{color:${B}}h1{text-align:center;font-size:14pt;margin:8px 0 14px}
+.sh{font-weight:bold;margin:10px 0 4px}.ul{text-decoration:underline}ul{margin:4px 0 4px 22px}li{margin:2px 0}
+table{border-collapse:collapse;width:100%;margin:6px 0}td,th{border:1px solid #000;padding:5px 8px;font-size:10pt;vertical-align:top}
+th{font-weight:bold;background:#f0f0f0}.rn td:nth-child(2),.rn td:nth-child(3){color:${B}}
+.qq{font-style:italic;margin:8px 0 2px}.aa{color:${B};margin:0 0 6px}.ft{color:#aaa;font-size:8pt;text-align:center;margin-top:20px}
+</style></head><body>`;
+  h+=`<div class="r">Name: <span class="ans">${esc(ndt.name||'________________')}</span></div>`;
+  h+=`<div class="r">Date: <span class="ans">${esc(ndt.date||today)}</span></div>`;
+  h+=`<div class="r">Period: <span class="ans">${esc(ndt.period||'_____')}</span></div>`;
+  h+=`<h1>${esc(title)}</h1>`;
+  for(const s of(data.notes_sections||[])){h+=`<p>`;if(s.heading)h+=`<span class="ul">${esc(s.heading)}</span>: `;h+=`<span class="ans">${esc(s.content||'')}</span></p>`;}
+  const bl=data.fill_in_blanks||[];if(bl.length){h+=`<div class="sh">Fill-in-the-Blank Answers:</div><ul>`;for(const b of bl)h+=`<li>${esc(b.blank_label||'')}: <strong><span class="ans">${esc(b.answer||'')}</span></strong></li>`;h+=`</ul>`;}
+  const bu=data.bullet_points||[];if(bu.length){h+=`<ul>`;for(const b of bu)h+=`<li><span class="ans">${esc(b.text||'')}</span></li>`;h+=`</ul>`;}
+  for(const t of(data.tables||[])){if(t.title)h+=`<div class="sh">${esc(t.title)}</div>`;const hdrs=t.headers||[],rows=t.rows||[];const cols=Math.max(hdrs.length,...rows.map(r=>r.length),0);if(!cols)continue;h+=`<table>`;if(hdrs.length)h+=`<tr>${hdrs.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;for(const r of rows)h+=`<tr>${r.map(c=>`<td><span class="ans">${esc(c)}</span></td>`).join('')}</tr>`;h+=`</table>`;}
+  for(const s of(data.short_answers||[])){h+=`<p class="qq">Q: ${esc(s.question||'')}</p><p class="aa">A: ${esc(s.answer||'')}</p>`;}
+  const rd=data.reading_notes||[];if(rd.length){h+=`<div class="sh"><u>Reading Notes:</u></div><table class="rn"><tr><th style="width:22%">Section / Heading</th><th style="width:48%">Summary</th><th style="width:30%">Questions / Connections</th></tr>`;for(const r of rd)h+=`<tr><td>${esc(r.section_heading||'')}</td><td>${esc(r.summary||'')}</td><td>${esc(r.questions_comments||'')}</td></tr>`;h+=`</table>`;}
+  h+=`<p class="ft">Version ${version} ${version===1?'(Direct)':'(Paraphrased)'} | ${today} | ${esc(src)}</p></body></html>`;
+  return new Blob([h],{type:'application/msword'});
+}
+
+// ── File reader ───────────────────────────────────────────────────────────
+function readFile(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>
